@@ -1,0 +1,117 @@
+"use client"
+
+import { useState } from "react"
+
+export default function Directory() {
+  const [emailUpload, setEmailUpload] = useState("")
+  const [file, setFile] = useState(null)
+
+  const [emailSearch, setEmailSearch] = useState("")
+  const [searchedImage, setSearchedImage] = useState(null)
+
+  // Upload Image
+  const handleUpload = async (e) => {
+    e.preventDefault()
+    if (!emailUpload || !file) {
+      alert("Email and image are required.")
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("email", emailUpload)
+    formData.append("file", file)
+
+    const res = await fetch("http://localhost:8000/upload-image", {
+      method: "POST",
+      body: formData,
+    })
+
+    if (res.ok) {
+      alert("Image uploaded!")
+      setEmailUpload("")
+      setFile(null)
+    } else {
+      const err = await res.json()
+      alert("Upload failed: " + err.detail)
+    }
+  }
+
+  // Search by email
+  const handleSearch = async () => {
+    if (!emailSearch.trim()) {
+      alert("Please enter email")
+      return
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8000/image-by-email/${emailSearch}`)
+      if (!res.ok) throw new Error()
+
+      const data = await res.json()
+      setSearchedImage(data.image)
+    } catch {
+      alert("No image found for this email")
+      setSearchedImage(null)
+    }
+  }
+
+  return (
+    <div className="min-h-screen p-8 bg-gray-50">
+      <h1 className="text-3xl font-bold mb-6">Image Upload & Search</h1>
+
+      {/* Upload Section */}
+      <form onSubmit={handleUpload} className="space-y-4 mb-10 bg-white p-6 rounded shadow max-w-xl">
+        <h2 className="text-xl font-semibold">Upload Image</h2>
+        <input
+          type="email"
+          placeholder="Enter your email"
+          value={emailUpload}
+          onChange={(e) => setEmailUpload(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="border p-2 rounded w-full"
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Upload
+        </button>
+      </form>
+
+      {/* Search Section */}
+      <div className="space-y-4 mb-10 bg-white p-6 rounded shadow max-w-xl">
+        <h2 className="text-xl font-semibold">Search by Email</h2>
+        <input
+          type="email"
+          placeholder="Enter email"
+          value={emailSearch}
+          onChange={(e) => setEmailSearch(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+        <button
+          onClick={handleSearch}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Search
+        </button>
+
+        {searchedImage && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-600">Path: {searchedImage}</p>
+            <img
+              src={`http://localhost:8000/image-file/${searchedImage.replace("uploads/", "")}?t=${Date.now()}`}
+              alt="Fetched"
+              className="w-64 h-64 object-cover rounded shadow"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
